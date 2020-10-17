@@ -57,7 +57,35 @@ def check_forum(url, last_check, forum, seconds_between_requests):
     '''
     TO DO: Crawl through forum pages looking for any new posts
     '''
-    pass
+    new_posts = []
+    posts = []
+    time.sleep(2)
+
+    try:
+        page = requests.get(url, timeout=(5,5))
+    except requests.exceptions.ConnectionError:
+        print('Connection Error...')
+        return []
+    except requests.exceptions.Timeout:
+        print('Read Timeout Error...')
+        return []
+
+    soup = BeautifulSoup(page.text, 'html.parser')
+    for topic in soup.find_all('a', class_='topictitle'):
+        post_time = topic.parent.find('time').text
+        username = topic.parent.find('a', class_='username').text
+        d = dict(post_time=post_time, username=username, topic_text=topic.text, forum=forum, url=url)
+        posts.append(d)
+        
+    for post in posts:
+        # convert to datetime
+        post['post_dt'] = convert_dt(post['post_time'])
+
+        # see if post is more recent than last check
+        if post['post_dt'] > last_check:
+            new_posts.append(post)
+            
+    return new_posts
 
 minutes_between_checks = 10
 seconds_between_requests = 2
